@@ -4,6 +4,7 @@ from memory import get_memory
 import datetime
 import agent_manager as agents
 import speak
+import yaml
 from config import Config
 import ai_functions as ai
 from file_operations import read_file, write_to_file, append_to_file, delete_file, search_files
@@ -27,15 +28,21 @@ def is_valid_int(value):
 def get_command(response):
     """Parse the response and return the command name and arguments"""
     try:
+        response_yaml = yaml.safe_load(response)
+        print("YAML loaded successfully.")
+        response_json = response_yaml
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML: {e}")
+        # Parse and print Assistant response
         response_json = fix_and_parse_json(response)
-
+    try:
         if "command" not in response_json:
-            return "Error:" , "Missing 'command' object in JSON"
+            return "Error:" , "Missing 'command' object in JSON", response_json
 
         command = response_json["command"]
 
         if "name" not in command:
-            return "Error:", "Missing 'name' field in 'command' object"
+            return "Error:", "Missing 'name' field in 'command' object", response_json
 
         command_name = command["name"]
 
@@ -110,7 +117,7 @@ def execute_command(command_name, arguments):
         elif command_name == "task_complete":
             shutdown()
         else:
-            return f"Unknown command '{command_name}'. Please refer to the 'COMMANDS' list for available commands and only respond in the specified JSON format."
+            return f"Unknown command '{command_name}'. Please refer to the 'COMMANDS' list for available commands and only respond in the specified YAML format."
     # All errors, return "Error: + error message"
     except Exception as e:
         return "Error: " + str(e)
@@ -122,13 +129,13 @@ def get_datetime():
         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def google_search(query, num_results=8):
+def google_search(query, num_results=5):
     """Return the results of a google search"""
     search_results = []
     for j in ddg(query, max_results=num_results):
         search_results.append(j)
 
-    return json.dumps(search_results, ensure_ascii=False, indent=4)
+    return yaml.dump(search_results, indent=6)
 
 def google_official_search(query, num_results=8):
     """Return the results of a google search using the official Google API"""
